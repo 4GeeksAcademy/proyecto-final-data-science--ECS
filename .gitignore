@@ -1,0 +1,29 @@
+__pycache__
+.env
+.learn
+raw/
+*.csvsrc/bottle.db
+src/bottle
+src/bottle.db
+src/bottle
+*.db
+
+data/raw/bottle.csv
+data/raw/cast.csv
+data/raw/biologico/calcofi_ichthyo/
+
+
+
+# Ignorar entornos virtuales
+.venv/
+venv/
+env/
+
+# Ignorar modelos pesados y datasets
+*.pkl
+*.joblib
+*.csv
+data/
+../../data/
+.ipynb_checkpoints/
+__pycache__/
