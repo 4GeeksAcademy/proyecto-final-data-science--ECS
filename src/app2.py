@@ -1,97 +1,111 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import joblib
 import os
+import joblib
+import pandas as pd
+import streamlit as st
 
-# 1. Configuración de la página
+# ==========================================
+# CONFIGURACIÓN DE LA PÁGINA
+# ==========================================
 st.set_page_config(
-    page_title="Predicción de Abundancia - CalCOFI", 
+    page_title="Predicción de Abundancia - Especies Marinas",
+    page_icon="🌊",
     layout="wide"
 )
 
-st.title("Predicción de Abundancia de Peces (CalCOFI)")
-st.write("Utiliza los controles para simular condiciones ambientales y predecir la abundancia.")
-
-# 2. Cargar los modelos
+# ==========================================
+# FUNCIONES DE CARGA LOCAL CON MMAP_MODE (AHORRO DE RAM)
+# ==========================================
 @st.cache_resource
-def load_models():
-    try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        path_sardina = os.path.join(current_dir, '../notebooks/individuales/modelo_sardina_rf.pkl')
-        path_anchoa = os.path.join(current_dir, '../notebooks/individuales/modelo_anchoa_rf.pkl')
-        
-        modelo_sardina = joblib.load(path_sardina)
-        modelo_anchoa = joblib.load(path_anchoa)
-        return modelo_sardina, modelo_anchoa
-    except Exception as e:
-        st.error(f"Error al cargar los modelos: {e}")
-        return None, None
+def load_modelo_sardina():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path_sardina = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_sardina_rf.pkl")
+    return joblib.load(path_sardina, mmap_mode='r')
 
-modelo_sardina, modelo_anchoa = load_models()
+@st.cache_resource
+def load_modelo_anchoa():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path_anchoa = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_anchoa_rf.pkl") 
+    return joblib.load(path_anchoa, mmap_mode='r')
 
-# 3. Formulario en la barra lateral
-st.sidebar.header("Parámetros Ambientales")
-especie_seleccionada = st.sidebar.selectbox(
-    "Seleccionar Especie", 
-    options=["Anchoa (Engraulis mordax)", "Sardina (Sardinops sagax)"]
-)
+# ==========================================
+# INTERFAZ PRINCIPAL
+# ==========================================
+st.title("🌊 Panel de Control: Predicción de Abundancia Marina")
+st.write("Sistema optimizado para ejecución estable en Render (California region).")
 
-# Seleccionar el modelo activo para inspeccionar sus columnas exactas
-model_activo = modelo_anchoa if especie_seleccionada.startswith("Anchoa") else modelo_sardina
+# Layout principal dividido en dos columnas: Controles a la izquierda, Mapa y Botón a la derecha
+col_ctrl, col_map = st.columns([1, 1], gap="large")
 
-if model_activo is not None:
-    # Obtenemos exactamente las columnas que el modelo espera
-    expected_features = model_activo.feature_names_in_
+with col_ctrl:
+    st.subheader("🎛️ Panel de Control")
     
-    st.sidebar.subheader("Valores principales")
-    # Sliders para las variables principales que el usuario quiera controlar
-    lat = st.sidebar.slider("Latitud", 30.0, 35.0, 32.0, 0.5)
-    lon = st.sidebar.slider("Longitud", -124.0, -117.0, -120.0, 0.5)
-    year = st.sidebar.number_input("Año", 1950, 2020, 1990)
-    month = st.sidebar.slider("Mes", 1, 12, 6)
-    t_degc = st.sidebar.slider("Temperatura (°C)", 8.0, 25.0, 15.0, 0.1)
-    o2 = st.sidebar.slider("Oxígeno disuelto (ml/L)", 0.5, 8.0, 5.0, 0.1)
+    # Selector de especie limpio
+    especie_seleccionada = st.radio(
+        "Seleccionar Especie a Predecir:", 
+        ["Sardina", "Anchoa"], 
+        horizontal=True
+    )
+    
+    st.markdown("---")
+    
+    # Filtros Temporales (Sliders)
+    st.subheader("🗓️ Filtros Temporales")
+    Year = st.slider("Año", min_value=1950, max_value=2026, value=2000, step=1)
+    Month = st.slider("Mes", min_value=1, max_value=12, value=6, step=1)
+    
+    # Coordenadas geográficas y profundidad (Sliders)
+    st.subheader("🗺️ Ubicación y Geografía")
+    lat_round = st.slider("Latitud", min_value=32.0, max_value=42.0, value=34.05, step=0.01)
+    lon_round = st.slider("Longitud", min_value=-124.4, max_value=-114.1, value=-118.24, step=0.01)
+    Depthm = st.slider("Profundidad", min_value=0.0, max_value=4000.0, value=50.0, step=10.0)
+    
+    # Condiciones Físico-Químicas principales (Sliders)
+    st.subheader("🧪 Condiciones Físico-Químicas")
+    T_degC = st.slider("Temperatura del agua (°C)", min_value=0.0, max_value=30.0, value=15.0, step=0.1)
+    PO4uM = st.slider("Nutrientes (Fosfato - PO4uM)", min_value=0.0, max_value=5.0, value=1.0, step=0.1)
 
-    # Construir un diccionario base rellenando todas las columnas que el modelo espera
-    # Si alguna columna específica del modelo no está en los controles manuales, se le asigna un valor por defecto (ej. 0.0 o mediana)
-    input_data = {}
-    for col in expected_features:
-        col_lower = col.lower()
-        if 'lat' in col_lower:
-            input_data[col] = lat
-        elif 'lon' in col_lower:
-            input_data[col] = lon
-        elif 'year' in col_lower:
-            input_data[col] = year
-        elif 'month' in col_lower:
-            input_data[col] = month
-        elif 't_deg' in col_lower or 'temp' in col_lower:
-            input_data[col] = t_degc
-        elif 'o2' in col_lower:
-            input_data[col] = o2
-        else:
-            # Para otras variables que el modelo exija (como ChlorA, Depthm, etc.), ponemos un valor por defecto seguro
-            input_data[col] = 0.0
+    # Variables secundarias ocultas para satisfacer las 12 características exactas del modelo
+    with st.expander("⚙️ Avanzado (Opcional)"):
+        Salnty = st.slider("Salinidad (Salnty)", 30.0, 40.0, 33.5, step=0.1)
+        O2ml_L = st.slider("Oxígeno disuelto (O2ml_L)", 0.0, 10.0, 5.0, step=0.1)
+        STheta = st.slider("Densidad potencial (STheta)", 20.0, 30.0, 25.0, step=0.1)
+        ChlorA = st.slider("Clorofila (ChlorA)", 0.0, 50.0, 1.0, step=0.1)
+        NO3uM = st.slider("Nitrato (NO3uM)", 0.0, 50.0, 5.0, step=0.1)
 
-    df_usuario = pd.DataFrame([input_data])
-    # Asegurar el orden exacto de columnas que exige el modelo
-    df_usuario = df_usuario[expected_features]
-
-    st.subheader("Datos que se enviarán al modelo")
-    st.dataframe(df_usuario, use_container_width=True)
-
-    if st.button("🚀 Calcular Abundancia Predicha", type="primary"):
-        pred_log = model_activo.predict(df_usuario)[0]
-        pred_real = np.expm1(pred_log)
-        
-        st.divider()
-        st.subheader(f"📊 Resultado para: {especie_seleccionada}")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric(label="Predicción en Escala Real (Individuos)", value=f"{max(0, pred_real):,.2f}")
-        with col2:
-            st.metric(label="Predicción en Log-Espacio", value=f"{pred_log:.4f}")
-else:
-    st.warning("Los modelos no están disponibles.")
+with col_map:
+    st.subheader("🗺️ Mapa de California")
+    df_mapa = pd.DataFrame({'lat': [lat_round], 'lon': [lon_round]})
+    st.map(df_mapa, zoom=5)
+    
+    st.markdown("---")
+    
+    # Botón principal de cálculo
+    if st.button("Calcular la abundancia de peces", use_container_width=True):
+        try:
+            with st.spinner(f"Cargando modelo de {especie_seleccionada} y calculando..."):
+                if especie_seleccionada == "Sardina":
+                    modelo = load_modelo_sardina()
+                else:
+                    modelo = load_modelo_anchoa()
+                
+                # Orden exacto de las 12 características requeridas por el modelo
+                features = [[
+                    Year, lon_round, lat_round, Month, Salnty, 
+                    T_degC, O2ml_L, STheta, Depthm, ChlorA, PO4uM, NO3uM
+                ]]
+                
+                prediccion = modelo.predict(features)
+                valor_predicho = float(prediccion[0])
+                
+            st.success("¡Cálculo completado con éxito!")
+            
+            # Resultado destacado en métrica
+            st.metric(
+                label=f"📊 Abundancia Predicha ({especie_seleccionada})", 
+                value=f"{valor_predicho:,.2f} individuos"
+            )
+            
+            st.info(f"Parámetros: Año {Year}, Mes {Month} | Profundidad: {Depthm}m | Temp: {T_degC}°C | Ubicación: ({lat_round}, {lon_round})")
+            
+        except Exception as e:
+            st.error(f"Error al calcular la abundancia: {e}")
