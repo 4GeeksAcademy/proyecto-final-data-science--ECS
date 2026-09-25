@@ -16,25 +16,20 @@ st.write("Visualiza las estaciones de muestreo en la costa de California, filtra
 # 2. Cargar los modelos
 
 @st.cache_resource
-def load_models():
-    try:
-        # Obtenemos la ruta del directorio actual (src)
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Como notebooks está dentro de src en el entorno de Render, bajamos directo:
-        path_sardina = os.path.join(current_dir,"..", "notebooks", "individuales", "modelo_sardina_rf.pkl")
-        path_anchoa = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_anchoa_rf.pkl")
-        
-        modelo_sardina = joblib.load(path_sardina)
-        modelo_anchoa = joblib.load(path_anchoa)
-        return modelo_sardina, modelo_anchoa
-    except Exception as e:
-        st.error(f"Error al cargar los modelos: {e}")
-        return None, None
+def load_modelo_sardina():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path_sardina = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_sardina_rf.pkl")
+    return joblib.load(path_sardina)
 
-    
-# Llamamos a la función de carga que definimos antes
-modelo_sardina, modelo_anchoa = load_models()
+modelo_sardina = load_modelo_sardina()
+
+@st.cache_resource
+def load_modelo_anchoa():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path_anchoa = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_anchoa_rf.pkl")
+    return joblib.load(path_anchoa)
+
+modelo_anchoa = load_modelo_anchoa()
 
 # Verificamos que se hayan cargado correctamente antes de continuar
 if modelo_sardina is None or modelo_anchoa is None:
