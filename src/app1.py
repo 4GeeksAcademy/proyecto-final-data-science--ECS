@@ -7,8 +7,7 @@ import streamlit as st
 # CONFIGURACIÓN DE LA PÁGINA
 # ==========================================
 st.set_page_config(
-    page_title="Predicción de Abundancia - Especies Marinas",
-    page_icon="🌊",
+    page_title="Predicción de Abundancia de peces - Calcofi",
     layout="wide"
 )
 
@@ -24,118 +23,104 @@ def load_modelo_sardina():
 @st.cache_resource
 def load_modelo_anchoa():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    path_anchoa = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_sardina_rf.pkl") 
+    path_anchoa = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_anchoa_rf.pkl") 
     return joblib.load(path_anchoa, mmap_mode='r')
 
 # ==========================================
 # INTERFAZ PRINCIPAL
 # ==========================================
-st.title("🌊 Panel de Control: Predicción de Abundancia Marina")
-st.write("Sistema optimizado para ejecución estable en Render (California region).")
+st.title("Panel de Control")
+st.write("Qué cantidad de Anchoas o Sardinas se pueden encontrar en California")
 
-pestana_sardina, pestana_anchoa = st.tabs(["🐟 Predicción Sardina", "🦐 Predicción Anchoa"])
+# Layout principal dividido en dos columnas: Controles a la izquierda, Mapa y Botón a la derecha
+col_ctrl, col_map = st.columns([1, 1], gap="large")
 
-# ==========================================
-# SECCIÓN SARDINA
-# ==========================================
-with pestana_sardina:
-    st.header("Modelo Predictivo - Sardina")
+with col_ctrl:
+    st.subheader("Seleccionar Especie a Predecir:")
     
-    col1, col2 = st.columns(2)
+    # Selector de especie principal
+    especie_seleccionada = st.radio(
+        "", 
+        ["Sardina", "Anchoa"], 
+        horizontal=True
+    )
     
-    with col1:
-        st.subheader("🗓️ Filtros Temporales")
-        Year_s = st.selectbox("Year", options=list(range(1950, 2027)), index=70, key="year_s")
-        Month_s = st.slider("Month", 1, 12, 6, key="month_s")
-        
-        st.subheader("🗺️ Variables Geográficas")
-        lat_round_s = st.slider("lat_round", min_value=32.0, max_value=42.0, value=34.05, step=0.01, key="lat_r_s")
-        lon_round_s = st.slider("lon_round", min_value=-124.4, max_value=-114.1, value=-118.24, step=0.01, key="lon_r_s")
-        Depthm_s = st.slider("Depthm (Profundidad)", min_value=0.0, max_value=4000.0, value=50.0, step=10.0, key="depth_s")
-        
-        st.subheader("🧪 Condiciones Fisicoquímicas y Oceanográficas")
-        T_degC_s = st.slider("T_degC (Temperatura)", min_value=0.0, max_value=30.0, value=15.0, step=0.1, key="temp_s")
-        Salnty_s = st.slider("Salnty (Salinidad)", min_value=30.0, max_value=40.0, value=33.5, step=0.1, key="sal_s")
-        O2ml_L_s = st.slider("O2ml_L (Oxígeno)", min_value=0.0, max_value=10.0, value=5.0, step=0.1, key="o2_s")
-        STheta_s = st.slider("STheta (Densidad potencial)", min_value=20.0, max_value=30.0, value=25.0, step=0.1, key="sth_s")
-        ChlorA_s = st.slider("ChlorA (Clorofila)", min_value=0.0, max_value=50.0, value=1.0, step=0.1, key="chl_s")
-        PO4uM_s = st.slider("PO4uM (Fosfato)", min_value=0.0, max_value=5.0, value=1.0, step=0.1, key="po4_s")
-        
-        # Espacio por si encuentras la variable número 12 faltante
-        extra_feat_12_s = st.slider("Variable 12 (Pendiente de identificar)", min_value=0.0, max_value=100.0, value=0.0, step=0.1, key="ext_s")
-        
-    with col2:
-        st.subheader("🗺️ Ubicación en el Mapa (California)")
-        df_mapa_s = pd.DataFrame({'lat': [lat_round_s], 'lon': [lon_round_s]})
-        st.map(df_mapa_s, zoom=5)
-
-    if st.button("Calcular la abundancia", key="btn_sardina"):
-        try:
-            with st.spinner("Cargando modelo de sardina y calculando abundancia..."):
-                modelo_sardina = load_modelo_sardina()
-                
-                # Respetando estrictamente el orden de tus columnas anotadas:
-                features_sardina = [[
-                    Year_s, lon_round_s, lat_round_s, Month_s, Salnty_s, 
-                    T_degC_s, O2ml_L_s, STheta_s, Depthm_s, ChlorA_s, PO4uM_s, extra_feat_12_s
-                ]]
-                
-                prediccion_s = modelo_sardina.predict(features_sardina)
-                valor_predicho = float(prediccion_s[0])
-                
-            st.success("¡Cálculo completado con éxito!")
-            st.metric(label="📊 Abundancia Predicha (Sardina)", value=f"{valor_predicho:,.2f} individuos / biomasa")
-            
-        except Exception as e:
-            st.error(f"Error al calcular la abundancia: {e}")
-
-# ==========================================
-# SECCIÓN ANCHOA
-# ==========================================
-with pestana_anchoa:
-    st.header("Modelo Predictivo - Anchoa")
+    st.markdown("---")
     
-    col1, col2 = st.columns(2)
+    # Filtros Temporales (Sliders)
+    st.subheader("🗓️ Filtros Temporales")
+    Year = st.slider("Año", min_value=1950, max_value=2026, value=2000, step=1)
+    Month = st.slider("Mes", min_value=1, max_value=12, value=6, step=1)
     
-    with col1:
-        st.subheader("🗓️ Filtros Temporales")
-        Year_a = st.selectbox("Year", options=list(range(1950, 2027)), index=70, key="year_a")
-        Month_a = st.slider("Month", 1, 12, 6, key="month_a")
-        
-        st.subheader("🗺️ Variables Geográficas")
-        lat_round_a = st.slider("lat_round", min_value=32.0, max_value=42.0, value=34.05, step=0.01, key="lat_r_a")
-        lon_round_a = st.slider("lon_round", min_value=-124.4, max_value=-114.1, value=-118.24, step=0.01, key="lon_r_a")
-        Depthm_a = st.slider("Depthm (Profundidad)", min_value=0.0, max_value=4000.0, value=50.0, step=10.0, key="depth_a")
-        
-        st.subheader("🧪 Condiciones Fisicoquímicas y Oceanográficas")
-        T_degC_a = st.slider("T_degC (Temperatura)", min_value=0.0, max_value=30.0, value=15.0, step=0.1, key="temp_a")
-        Salnty_a = st.slider("Salnty (Salinidad)", min_value=30.0, max_value=40.0, value=33.5, step=0.1, key="sal_a")
-        O2ml_L_a = st.slider("O2ml_L (Oxígeno)", min_value=0.0, max_value=10.0, value=5.0, step=0.1, key="o2_a")
-        STheta_a = st.slider("STheta (Densidad potencial)", min_value=20.0, max_value=30.0, value=25.0, step=0.1, key="sth_a")
-        ChlorA_a = st.slider("ChlorA (Clorofila)", min_value=0.0, max_value=50.0, value=1.0, step=0.1, key="chl_a")
-        PO4uM_a = st.slider("PO4uM (Fosfato)", min_value=0.0, max_value=5.0, value=1.0, step=0.1, key="po4_a")
-        NO3uM_a = st.slider("NO3uM (Nutrientes)", min_value=0.0, max_value=100.0, value=0.0, step=0.1, key="ext_a")
-        
-    with col2:
-        st.subheader("🗺️ Ubicación en el Mapa (California)")
-        df_mapa_a = pd.DataFrame({'lat': [lat_round_a], 'lon': [lon_round_a]})
-        st.map(df_mapa_a, zoom=5)
+    # Coordenadas geográficas y profundidad (Ajustadas al rango marino y realista)
+    st.subheader("🗺️ Ubicación y Geografía")
+    lat_round = st.slider("Latitud", min_value=32.0, max_value=42.0, value=34.05, step=0.01)
+    lon_round = st.slider("Longitud", min_value=-124.4, max_value=-114.1, value=-118.24, step=0.01)
+    Depthm = st.slider("Profundidad (m)", min_value=0.0, max_value=1000.0, value=50.0, step=5.0)
+    
+    # Condiciones Físico-Químicas principales destacadas
+    st.subheader("🧪 Condiciones Físico-Químicas")
+    T_degC = st.slider("Temperatura del agua (°C)", min_value=0.0, max_value=30.0, value=15.0, step=0.1)
+    PO4uM = st.slider("Nutrientes (Fosfato - PO4uM)", min_value=0.0, max_value=5.0, value=1.0, step=0.1)
 
-    if st.button("Calcular la abundancia", key="btn_anchoa"):
-        try:
-            with st.spinner("Cargando modelo de anchoa y calculando abundancia..."):
-                modelo_anchoa = load_modelo_anchoa()
+    # Variables secundarias ocultas para satisfacer las 12 características exactas del modelo
+    with st.expander("⚙️ Avanzado (Opcional)"):
+        Salnty = st.slider("Salinidad", 30.0, 40.0, 33.5, step=0.1)
+        O2ml_L = st.slider("Oxígeno disuelto", 0.0, 10.0, 5.0, step=0.1)
+        STheta = st.slider("Densidad potencial (Presión del agua)", 20.0, 30.0, 25.0, step=0.1)
+        ChlorA = st.slider("Clorofila", 0.0, 50.0, 1.0, step=0.1)
+        NO3uM = st.slider("Nitrato", 0.0, 50.0, 5.0, step=0.1)
+
+with col_map:
+    st.subheader("🗺️ Mapa de California")
+    df_mapa = pd.DataFrame({'lat': [lat_round], 'lon': [lon_round]})
+    st.map(df_mapa, zoom=5)
+    
+    # Validación rápida de zona terrestre (aproximación geométrica de la costa de California)
+    # Si la longitud es muy hacia el este (valores mayores, ej. -117 o -115 dependiendo de la latitud), cae en tierra.
+    es_zona_terrestre = False
+    if lat_round < 35.0 and lon_round > -117.5:
+        es_zona_terrestre = True
+    elif lat_round >= 35.0 and lat_round < 38.0 and lon_round > -119.5:
+        es_zona_terrestre = True
+    elif lat_round >= 38.0 and lon_round > -121.5:
+        es_zona_terrestre = True
+
+    if es_zona_terrestre:
+        st.warning("⚠️ **Atención:** Las coordenadas seleccionadas parecen estar en **zona terrestre**. ¡Aquí no hay peces! Intenta mover la longitud más hacia el oeste (hacia el océano).")
+    
+    st.markdown("---")
+    
+    # Botón principal de cálculo
+    if st.button("Calcular la abundancia de peces", use_container_width=True):
+        if es_zona_terrestre:
+            st.error("❌ No se puede calcular: estás seleccionando un punto en tierra firme.")
+        else:
+            try:
+                with st.spinner(f"Cargando modelo de {especie_seleccionada} y calculando..."):
+                    if especie_seleccionada == "Sardina":
+                        modelo = load_modelo_sardina()
+                    else:
+                        modelo = load_modelo_anchoa()
+                    
+                    # Orden exacto de las 12 características requeridas por el modelo
+                    features = [[
+                        Year, lon_round, lat_round, Month, Salnty, 
+                        T_degC, O2ml_L, STheta, Depthm, ChlorA, PO4uM, NO3uM
+                    ]]
+                    
+                    prediccion = modelo.predict(features)
+                    valor_predicho = float(prediccion[0])
+                    
+                st.success("¡Cálculo completado con éxito!")
                 
-                features_anchoa = [[
-                    Year_a, lon_round_a, lat_round_a, Month_a, Salnty_a, 
-                    T_degC_a, O2ml_L_a, STheta_a, Depthm_a, ChlorA_a, PO4uM_a, extra_feat_12_a
-                ]]
+                # Resultado destacado en métrica
+                st.metric(
+                    label=f"📊 Abundancia Predicha ({especie_seleccionada})", 
+                    value=f"{valor_predicho:,.2f} individuos"
+                )
                 
-                prediccion_a = modelo_anchoa.predict(features_anchoa)
-                valor_predicho_a = float(prediccion_a[0])
+                st.info(f"Parámetros: Año {Year}, Mes {Month} | Profundidad: {Depthm}m | Temp: {T_degC}°C | Ubicación marina: ({lat_round}, {lon_round})")
                 
-            st.success("¡Cálculo completado con éxito!")
-            st.metric(label="📊 Abundancia Predicha (Anchoa)", value=f"{valor_predicho_a:,.2f} individuos / biomasa")
-            
-        except Exception as e:
-            st.error(f"Error al calcular la abundancia: {e}")
+            except Exception as e:
+                st.error(f"Error al calcular la abundancia: {e}")
