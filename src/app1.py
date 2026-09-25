@@ -18,12 +18,12 @@ st.write("Visualiza las estaciones de muestreo en la costa de California, filtra
 @st.cache_resource
 def load_models():
     try:
-        # Ruta de la carpeta 'src'
+        # Obtenemos la ruta del directorio actual (src)
         current_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # Subimos un nivel (..) para salir de 'src' y llegar a la raíz, luego entramos a 'notebooks'
-        path_sardina = os.path.abspath(os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_sardina_rf.pkl"))
-        path_anchoa = os.path.abspath(os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_anchoa_rf.pkl"))
+        # Como notebooks está dentro de src en el entorno de Render, bajamos directo:
+        path_sardina = os.path.join(current_dir, "notebooks", "individuales", "modelo_sardina_rf.pkl")
+        path_anchoa = os.path.join(current_dir, "notebooks", "individuales", "modelo_anchoa_rf.pkl")
         
         modelo_sardina = joblib.load(path_sardina)
         modelo_anchoa = joblib.load(path_anchoa)
