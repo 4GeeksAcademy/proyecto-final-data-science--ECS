@@ -35,6 +35,15 @@ def load_models():
         st.error(f"Error al cargar los modelos: {e}")
         return None, None
 
+    
+# Llamamos a la función de carga que definimos antes
+modelo_sardina, modelo_anchoa = load_models()
+
+# Verificamos que se hayan cargado correctamente antes de continuar
+if modelo_sardina is None or modelo_anchoa is None:
+    st.error("No se pudieron cargar los modelos de Machine Learning. Revisa las rutas.")
+    st.stop() # Detiene la ejecución para que no crashee más abajo
+
 # 3. Sidebar: Panel de Control Completo
 st.sidebar.header("🎛️ Panel de Control")
 
