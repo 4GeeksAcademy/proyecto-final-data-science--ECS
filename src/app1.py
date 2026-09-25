@@ -6,21 +6,27 @@ import os
 
 # 1. Configuración de la página
 st.set_page_config(
-    page_title="Predicción y Mapa CalCOFI - Especies Marinas", 
-    page_icon="🐟", 
+    page_title="Predicción y Mapa CalCOFI - Especies Marinas",  
     layout="wide"
 )
 
-st.title("Explorador y Predictor CalCOFI (California)")
+st.title("Explorador y Predictor de peces en California")
 st.write("Visualiza las estaciones de muestreo en la costa de California, filtra por fecha, coordenadas y simula las condiciones ambientales.")
 
 # 2. Cargar los modelos
+
 @st.cache_resource
 def load_models():
     try:
+        # Obtenemos la ruta absoluta del archivo actual (src/app1.py)
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        path_sardina = os.path.join(current_dir, '../notebooks/individuales/modelo_sardina_rf.pkl')
-        path_anchoa = os.path.join(current_dir, '../notebooks/individuales/modelo_anchoa_rf.pkl')
+        
+        # Subimos un nivel para llegar a la raíz del proyecto (donde está 'notebooks' y 'src')
+        root_dir = os.path.abspath(os.path.join(current_dir, ".."))
+        
+        # Construimos las rutas absolutas directamente desde la raíz
+        path_sardina = os.path.join(root_dir, "notebooks", "individuales", "modelo_sardina_rf.pkl")
+        path_anchoa = os.path.join(root_dir, "notebooks", "individuales", "modelo_anchoa_rf.pkl")
         
         modelo_sardina = joblib.load(path_sardina)
         modelo_anchoa = joblib.load(path_anchoa)
@@ -28,8 +34,6 @@ def load_models():
     except Exception as e:
         st.error(f"Error al cargar los modelos: {e}")
         return None, None
-
-modelo_sardina, modelo_anchoa = load_models()
 
 # 3. Sidebar: Panel de Control Completo
 st.sidebar.header("🎛️ Panel de Control")
