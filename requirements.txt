@@ -17,3 +17,4 @@ streamlit
 joblib
 folium
 streamlit-folium
+gdown

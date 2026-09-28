@@ -2,6 +2,7 @@ import os
 import joblib
 import pandas as pd
 import streamlit as st
+import gdown
 
 # ==========================================
 # CONFIGURACIÓN DE LA PÁGINA
@@ -12,18 +13,34 @@ st.set_page_config(
 )
 
 # ==========================================
-# FUNCIONES DE CARGA LOCAL CON MMAP_MODE (AHORRO DE RAM)
+# FUNCIONES DE CARGA (DESCARGA DESDE DRIVE + AHORRO DE RAM)
 # ==========================================
 @st.cache_resource
 def load_modelo_sardina():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     path_sardina = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_sardina_rf.pkl")
+    
+    # Si el modelo no existe, lo descarga de Google Drive
+    if not os.path.exists(path_sardina):
+        os.makedirs(os.path.dirname(path_sardina), exist_ok=True)
+        file_id = "1FoRJJHYid4PDk9ZWrNqHDQL6ECH6JQaS"
+        url = f'https://drive.google.com/uc?id={file_id}'
+        gdown.download(url, path_sardina, quiet=False)
+        
     return joblib.load(path_sardina, mmap_mode='r')
 
 @st.cache_resource
 def load_modelo_anchoa():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     path_anchoa = os.path.join(current_dir, "..", "notebooks", "individuales", "modelo_anchoa_rf.pkl") 
+    
+    # Si el modelo no existe, lo descarga de Google Drive
+    if not os.path.exists(path_anchoa):
+        os.makedirs(os.path.dirname(path_anchoa), exist_ok=True)
+        file_id = "1ADmAUJTLOxTIpSVlSswoatISTau7GgR-"
+        url = f'https://drive.google.com/uc?id={file_id}'
+        gdown.download(url, path_anchoa, quiet=False)
+        
     return joblib.load(path_anchoa, mmap_mode='r')
 
 # ==========================================
@@ -44,7 +61,7 @@ with col_ctrl:
         ["Sardina", "Anchoa"], 
         horizontal=True
     )
-    
+
     st.markdown("---")
     
     # Filtros Temporales (Sliders)
@@ -77,7 +94,6 @@ with col_map:
     st.map(df_mapa, zoom=5)
     
     # Validación rápida de zona terrestre (aproximación geométrica de la costa de California)
-    # Si la longitud es muy hacia el este (valores mayores, ej. -117 o -115 dependiendo de la latitud), cae en tierra.
     es_zona_terrestre = False
     if lat_round < 35.0 and lon_round > -117.5:
         es_zona_terrestre = True
