@@ -34,7 +34,7 @@ medianas = joblib.load(
 
 
 # -----------------------------
-# NOMBRES PARA LA APLICACIÓN
+# NOMBRES DE LAS VARIABLES
 # -----------------------------
 
 nombres_bonitos = {
@@ -45,8 +45,8 @@ nombres_bonitos = {
     "T_degC": "Temperatura del agua (°C)",
     "Salnty": "Salinidad",
     "STheta": "Densidad potencial",
-    "O2ml_L": "Oxígeno disuelto",
-    "O2Sat": "Saturación de oxígeno",
+    "O2ml_L": "Oxígeno disuelto (ml/L)",
+    "O2Sat": "Saturación de oxígeno (%)",
     "Depthm": "Profundidad (m)",
     "Bottom_D": "Profundidad del fondo (m)",
     "Wind_Spd": "Velocidad del viento (nudos)"
@@ -71,12 +71,12 @@ st.write(
 
 col1, col2 = st.columns([1, 1])
 
+valores = {}
+
 
 # -----------------------------
 # DATOS DEL USUARIO
 # -----------------------------
-
-valores = {}
 
 with col1:
 
@@ -178,6 +178,10 @@ if st.button("Calcular probabilidad de cada especie"):
     porcentaje_sardina = prob_sardina * 100
 
 
+    # -----------------------------
+    # RESULTADOS
+    # -----------------------------
+
     st.subheader("Probabilidad estimada de presencia")
 
     st.write(
@@ -193,6 +197,10 @@ if st.button("Calcular probabilidad de cada especie"):
 
     st.progress(prob_sardina)
 
+
+    # -----------------------------
+    # INTERPRETACIÓN
+    # -----------------------------
 
     if porcentaje_anchoa > porcentaje_sardina:
 
