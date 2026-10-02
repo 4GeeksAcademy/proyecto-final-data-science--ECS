@@ -1084,7 +1084,7 @@ st.markdown(
 <div class="hero">
 
 <h1>
-🐟 PREDICTOR DE ESPECIES MARINAS
+PREDICTOR DE ESPECIES MARINAS
 </h1>
 
 <h2>
